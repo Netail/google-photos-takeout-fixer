@@ -1,0 +1,26 @@
+name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, unlocked]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.4"
+
+      - name: Install dependencies
+        run: go get .
+
+      - name: Build
+        run: go build -v ./main.go
+
+      - name: Test
+        run: go test -v
