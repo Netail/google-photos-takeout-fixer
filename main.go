@@ -14,6 +14,7 @@ import (
 )
 
 type Metadata struct {
+	Title          string `json:"title"`
 	PhotoTakenTime struct {
 		Timestamp string `json:"timestamp"`
 	} `json:"photoTakenTime"`
@@ -54,7 +55,29 @@ func processDirectory(inputDir, outputDir string, flat bool) error {
 		if d.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(path, metadataSuffix) {
+		base := filepath.Base(path)
+		matched := false
+		for s := metadataSuffix; len(s) > 0; s = s[:len(s)-1] {
+			if strings.HasSuffix(base, s+".json") {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			// Non-JSON files are media candidates; warn if no metadata file exists for them.
+			if !strings.HasSuffix(base, ".json") {
+				dir := filepath.Dir(path)
+				hasMetadata := false
+				for s := metadataSuffix; len(s) > 0; s = s[:len(s)-1] {
+					if _, statErr := os.Stat(filepath.Join(dir, base+s+".json")); statErr == nil {
+						hasMetadata = true
+						break
+					}
+				}
+				if !hasMetadata {
+					fmt.Printf("Warning: no metadata file found for %s\n", path)
+				}
+			}
 			return nil
 		}
 		return processMetadataFile(path, inputDir, outputDir, flat)
@@ -79,7 +102,7 @@ func processMetadataFile(metaPath, inputDir, outputDir string, flat bool) error 
 	photoTime := time.Unix(ts, 0)
 
 	dir := filepath.Dir(metaPath)
-	mediaName := strings.TrimSuffix(filepath.Base(metaPath), metadataSuffix)
+	mediaName := meta.Title
 
 	ext := filepath.Ext(mediaName)
 	base := strings.TrimSuffix(mediaName, ext)
