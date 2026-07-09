@@ -409,3 +409,35 @@ func TestTruncatedEditedFilename(t *testing.T) {
 		t.Errorf("content = %q, want %q", string(content), "edited")
 	}
 }
+
+func TestDuplicates(t *testing.T) {
+	inputDir := t.TempDir()
+	outputDir := t.TempDir()
+
+	writeFile(t, filepath.Join(inputDir, "photo.jpg"), "edited")
+	writeFile(t, filepath.Join(inputDir, "photo(1).jpg"), "original")
+	writeFile(t, filepath.Join(inputDir, "photo.jpg"+metadataSuffix), metadata("photo.jpg", "1500677462"))
+	writeFile(t, filepath.Join(inputDir, "photo.jpg.supplemental-metadata(1).json"), metadata("photo.jpg", "1500677462"))
+
+	if _, err := processDirectory(inputDir, outputDir, false); err != nil {
+		t.Fatalf("processDirectory: %v", err)
+	}
+
+	dest := filepath.Join(outputDir, "photo.jpg")
+	content, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("output file missing: %v", err)
+	}
+	if string(content) != "edited" {
+		t.Errorf("content = %q, want %q", string(content), "edited")
+	}
+
+	dest1 := filepath.Join(outputDir, "photo(1).jpg")
+	content1, err := os.ReadFile(dest1)
+	if err != nil {
+		t.Fatalf("output file missing: %v", err)
+	}
+	if string(content1) != "original" {
+		t.Errorf("content = %q, want %q", string(content1), "original")
+	}
+}

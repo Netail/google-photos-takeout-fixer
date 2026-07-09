@@ -106,6 +106,19 @@ func processMetadataFile(metaPath, inputDir, outputDir string, flat bool, stats 
 	ext := filepath.Ext(mediaName)
 	base := strings.TrimSuffix(mediaName, ext)
 
+	// If the metadata filename carries a "(N)" counter (e.g. "photo.jpg.supplemental-metadata(1).json")
+	// but the title doesn't already include it, inject the counter into the media filename.
+	metaBase := strings.TrimSuffix(filepath.Base(metaPath), ".json")
+	if idx := strings.LastIndex(metaBase, "("); idx != -1 {
+		if end := strings.Index(metaBase[idx:], ")"); end != -1 {
+			counter := metaBase[idx : idx+end+1]
+			if !strings.Contains(mediaName, counter) {
+				base = base + counter
+				mediaName = base + ext
+			}
+		}
+	}
+
 	// Prefer edited variants over the original
 	sourceFile := ""
 	for _, suffix := range editedSuffixes {
